@@ -5,25 +5,29 @@ exports.handler = async (event) => {
 
     try {
         
-        console.log('LAMBDA déclenchée !');
-    
-        // Récupérer le corps de la requête
-        const requestBody = JSON.parse(event.body);
-        console.log('requestBody --> ', requestBody);
+        const data = event.Records[0].dynamodb.NewImage;
+        const requestBody = AWS.DynamoDB.Converter.unmarshall(data);
+        console.log('Lambda WRITE_TO_DYNAMO déclenchée par la création du nouveau record -> ',requestBody);
 
+        if (requestBody.jobType !== 'addToDynamo') {
+            console.log('jobType is not addToDynamo: exiting');
+            return {
+                statusCode: 200,
+                body: JSON.stringify('jobType is not addToDynamo: exiting'),
+            };
+        }
         // Préparer les paramètres pour l'insertion dans DynamoDB
         const params = {
-            TableName: 'randomTable', // Remplacez par le nom de votre table DynamoDB
+            TableName: 'content_table', 
             Item: {
                 id: requestBody.id, 
                 ...requestBody
             }
         };
-        console.log('params --> ', params);
         
         // Insérer les données dans DynamoDB
         const res = await dynamodb.put(params).promise();
-        console.log('res --> ', res);
+        console.log('dynamoDb put request triggered --> ', res);
         const response = {
             statusCode: 200,
             body: JSON.stringify('element inserted in dynamoDB'),
